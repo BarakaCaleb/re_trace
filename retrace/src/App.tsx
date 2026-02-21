@@ -3,20 +3,24 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import CreateAsset from "./pages/CreateAsset";
+import OEMPassport from "./pages/OEMPassport";
 import Asset from "./pages/Asset";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
+  const DashboardComp = Dashboard as unknown as React.ComponentType<Record<string, unknown>>;
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/oem/passport" element={<OEMPassport />} />
 
       <Route
         path="/app"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <DashboardComp />
           </ProtectedRoute>
         }
       />

@@ -1,64 +1,98 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router-dom"
 
-export default function Landing() {
-  return (
-    <div style={{ minHeight: "100vh", padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontWeight: 800, fontSize: 20 }}>Re:Trace</div>
-        <nav style={{ display: "flex", gap: 12 }}>
-          <a href="#how">How it works</a>
-          <a href="#features">Features</a>
+export default function Landing(){
+  return(
+    <div style={{maxWidth:1440, margin:"0 auto", padding:32}}>
+
+      {/* NAV */}
+      <nav style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+        <div style={{fontWeight:700,fontSize:20}}>RE:TRACE</div>
+
+        <div style={{display:"flex",gap:24, alignItems:"center"}}>
+          <a href="#customs">Customs</a>
+          <a href="#garages">Garages</a>
+          <a href="#dealers">Dealers</a>
+          <a href="#recyclers">Recyclers</a>
           <Link to="/login">Login</Link>
-        </nav>
-      </header>
 
-      <main style={{ paddingTop: 48 }}>
-        <h1 style={{ fontSize: 44, lineHeight: 1.1, marginBottom: 12 }}>
-          Traceability for End-of-Life assets and circular supply chains.
+          <Link to="/register" style={{
+            background:"var(--accent)",
+            padding:"10px 18px",
+            fontWeight:600
+          }}>
+            Get Started
+          </Link>
+        </div>
+      </nav>
+
+
+      {/* HERO */}
+      <section className="section" style={{marginTop:80}}>
+        <h1 style={{fontSize:40, fontWeight:700}}>
+          Lifecycle Intelligence for End-of-Life Vehicles
         </h1>
-        <p style={{ fontSize: 18, maxWidth: 750, opacity: 0.85 }}>
-          Register assets, scan QR to view a Digital Passport, and write append-only lifecycle events with proof attachments.
-          Built for recyclers, workshops, and regulators.
+
+        <p style={{fontSize:16, maxWidth:700}} className="muted">
+          Track VIN signals across regions. Detect downstream lifecycle activity.
+          Generate audit-ready evidence for regulators, recyclers, and OEM teams.
         </p>
 
-        <div style={{ display: "flex", gap: 12, marginTop: 18 }}>
-          <Link to="/login" style={{ padding: "10px 14px", border: "1px solid #111", borderRadius: 10 }}>
-            View MVP
+        <div style={{marginTop:28, display:"flex", gap:16}}>
+          <Link to="/register" style={{background:"var(--accent)", padding:"14px 22px"}}>
+            Search VIN
           </Link>
-          <a href="#how" style={{ padding: "10px 14px", border: "1px solid #ddd", borderRadius: 10 }}>
-            How it works
+
+          <a href="#how" style={{border:"1px solid var(--muted)", padding:"14px 22px"}}>
+            How it Works
           </a>
         </div>
+      </section>
 
-        <div style={{ marginTop: 18, fontSize: 13, opacity: 0.7 }}>
-          Case study reference: “BMW ELV circular economy challenge” (concept demo; no affiliation implied).
+
+      {/* TRUST STRIP */}
+      <section className="section">
+        <div className="panel" style={{padding:24, display:"flex", justifyContent:"space-between"}}>
+          <span>Customs Authorities</span>
+          <span>OEM Compliance Teams</span>
+          <span>Dealership Networks</span>
+          <span>Certified Recyclers</span>
         </div>
+      </section>
 
-        <section id="how" style={{ marginTop: 56 }}>
-          <h2 style={{ fontSize: 26 }}>How it works</h2>
-          <ol style={{ marginTop: 10, lineHeight: 1.8 }}>
-            <li><b>Register</b> an asset (vehicle/battery/part) and generate a QR code.</li>
-            <li><b>Scan</b> the QR to open a Digital Passport.</li>
-            <li><b>Verify</b> lifecycle events (append-only) with audit-ready history.</li>
-          </ol>
-        </section>
 
-        <section id="features" style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 26 }}>What the MVP shows</h2>
-          <ul style={{ marginTop: 10, lineHeight: 1.8 }}>
-            <li>Auth + role-ready structure</li>
-            <li>Asset creation + QR</li>
-            <li>Passport view + status</li>
-            <li>Append-only event timeline</li>
-            <li>Dashboard metrics</li>
-          </ul>
-        </section>
+      {/* HOW */}
+      <section id="how" className="section">
+        <h2 style={{fontSize:28}}>How Re:Trace Works</h2>
 
-        <footer style={{ marginTop: 60, borderTop: "1px solid #eee", paddingTop: 16, fontSize: 12, opacity: 0.75 }}>
-          Re:Trace is an independent concept prototype. Brand references are for discussion/case-study only and do not imply
-          affiliation or endorsement.
-        </footer>
-      </main>
+        <div className="grid-12 section">
+          <Step title="Search VIN" text="Retrieve lifecycle intelligence report"/>
+          <Step title="Log Signals" text="Add sightings or lifecycle events"/>
+          <Step title="Analyze Patterns" text="Detect cross-regional movement"/>
+        </div>
+      </section>
+
+
+      {/* CTA */}
+      <section className="section">
+        <div className="panel" style={{padding:48, textAlign:"center"}}>
+          <h2>Start Monitoring Lifecycle Activity</h2>
+          <Link to="/register" style={{marginTop:18, display:"inline-block", background:"var(--accent)", padding:"14px 28px"}}>
+            Register Organization
+          </Link>
+        </div>
+      </section>
+
     </div>
-  );
+  )
+}
+
+function Step({title,text}:{title:string,text:string}){
+  return(
+    <div style={{gridColumn:"span 4"}} className="panel">
+      <div style={{padding:24}}>
+        <h3>{title}</h3>
+        <p className="muted">{text}</p>
+      </div>
+    </div>
+  )
 }

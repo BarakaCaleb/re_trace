@@ -1,0 +1,31 @@
+:root{
+  --bg-primary:#00172D;
+  --panel:#050505;
+  --text:#FFFFFF;
+  --muted:#2A3A4D;
+  --accent:#1C6FFF;
+}
+
+body{
+  margin:0;
+  background:var(--bg-primary);
+  color:var(--text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.panel{
+  background:var(--panel);
+  border:1px solid var(--muted);
+}
+
+.muted{ color:var(--muted); }
+
+.grid-12{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  gap:24px;
+}
+
+.section{
+  margin-top:24px;
+}

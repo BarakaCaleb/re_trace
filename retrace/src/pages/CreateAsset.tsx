@@ -1,7 +1,7 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import QRCode from "qrcode.react";
+import {QRCode} from "react-qrcode-logo";
 import { auth, db } from "../config/firebase";
 
 type AssetType = "ELV_VEHICLE" | "BATTERY" | "PART";
@@ -33,19 +33,25 @@ export default function CreateAsset() {
   const assetUrl = assetId ? `${window.location.origin}/app/assets/${assetId}` : "";
 
   return (
-    <div style={{ minHeight: "100vh", padding: 24, maxWidth: 900, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", padding: 32, maxWidth: 1100, margin: "0 auto" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 18 }}>Create Asset</div>
-          <div style={{ fontSize: 13, opacity: 0.75 }}>Generate a QR for the digital passport</div>
+          <div style={{ fontWeight: 700, fontSize: 20 }}>Create Asset</div>
+          <div style={{ fontSize: 13, color: "#2A3A4D", marginTop: 4 }}>
+            Generate a QR for the digital passport
+          </div>
         </div>
-        <Link to="/app">Back</Link>
+        <Link to="/app" style={{ color: "#FFFFFF", textDecoration: "none" }}>
+          Back
+        </Link>
       </header>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginTop: 18 }}>
-        <form onSubmit={create} style={{ border: "1px solid #eee", borderRadius: 14, padding: 16, display: "grid", gap: 12 }}>
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13 }}>Asset type</span>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 18, marginTop: 24 }}>
+        <form onSubmit={create} style={panelStyle}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Asset Registration</div>
+
+          <label style={labelStyle}>
+            <span style={labelText}>Asset type</span>
             <select value={type} onChange={(e) => setType(e.target.value as AssetType)} style={inputStyle}>
               <option value="ELV_VEHICLE">ELV Vehicle</option>
               <option value="BATTERY">Battery</option>
@@ -53,13 +59,19 @@ export default function CreateAsset() {
             </select>
           </label>
 
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13 }}>VIN / Serial</span>
-            <input value={vinOrSerial} onChange={(e) => setVinOrSerial(e.target.value)} required style={inputStyle} />
+          <label style={labelStyle}>
+            <span style={labelText}>VIN / Serial</span>
+            <input
+              value={vinOrSerial}
+              onChange={(e) => setVinOrSerial(e.target.value)}
+              required
+              placeholder="e.g. WBA8E9G51GNU12345"
+              style={inputStyle}
+            />
           </label>
 
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13 }}>Status</span>
+          <label style={labelStyle}>
+            <span style={labelText}>Status</span>
             <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
               <option value="registered">Registered</option>
               <option value="in_use">In use</option>
@@ -69,27 +81,33 @@ export default function CreateAsset() {
             </select>
           </label>
 
-          <button
-            disabled={creating}
-            style={{ padding: "10px 14px", borderRadius: 10, border: "1px solid #111", background: "#111", color: "#fff" }}
-          >
+          <button disabled={creating} style={primaryBtn}>
             {creating ? "Creating…" : "Create asset"}
           </button>
         </form>
 
         {assetId && (
-          <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Asset created ✅</div>
-            <div style={{ fontSize: 13, opacity: 0.75, marginTop: 6 }}>Asset ID: {assetId}</div>
+          <div style={panelStyle}>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>Asset created</div>
+            <div style={{ fontSize: 13, color: "#2A3A4D", marginTop: 6 }}>Asset ID: {assetId}</div>
 
-            <div style={{ marginTop: 14, display: "grid", placeItems: "center" }}>
-              <QRCode value={assetUrl} size={200} />
-              <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75, wordBreak: "break-all" }}>{assetUrl}</div>
+            <div style={{ marginTop: 16, display: "grid", placeItems: "center", gap: 10 }}>
+              <QRCode
+                value={assetUrl}
+                size={200}
+                quietZone={8}
+                bgColor="#050505"
+                fgColor="#FFFFFF"
+                eyeColor="#1C6FFF"
+              />
+              <div style={{ fontSize: 12, color: "#2A3A4D", wordBreak: "break-all", textAlign: "center" }}>
+                {assetUrl}
+              </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "center" }}>
-              <Link to={`/app/assets/${assetId}`} style={{ padding: "10px 14px", border: "1px solid #111", borderRadius: 10 }}>
-                Open Passport
+            <div style={{ display: "flex", gap: 12, marginTop: 16, justifyContent: "center" }}>
+              <Link to={`/app/assets/${assetId}`} style={secondaryBtn}>
+                Open Passport →
               </Link>
             </div>
           </div>
@@ -99,8 +117,36 @@ export default function CreateAsset() {
   );
 }
 
+const panelStyle: React.CSSProperties = {
+  background: "#050505",
+  border: "1px solid #2A3A4D",
+  padding: 20,
+};
+
+const labelStyle: React.CSSProperties = { display: "grid", gap: 8 };
+const labelText: React.CSSProperties = { fontSize: 13, color: "#2A3A4D" };
+
 const inputStyle: React.CSSProperties = {
   padding: 10,
-  borderRadius: 10,
-  border: "1px solid #ddd",
+  border: "1px solid #2A3A4D",
+  background: "transparent",
+  color: "#FFFFFF",
+  outline: "none",
+};
+
+const primaryBtn: React.CSSProperties = {
+  marginTop: 8,
+  padding: "12px 14px",
+  border: "1px solid #1C6FFF",
+  background: "#1C6FFF",
+  color: "#FFFFFF",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const secondaryBtn: React.CSSProperties = {
+  padding: "10px 14px",
+  border: "1px solid #2A3A4D",
+  color: "#FFFFFF",
+  textDecoration: "none",
 };
