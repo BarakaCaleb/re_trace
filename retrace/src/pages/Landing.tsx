@@ -6,7 +6,7 @@ export default function Landing(){
 
       {/* NAV */}
       <nav style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-        <div style={{fontWeight:700,fontSize:20}}>RE:TRACE</div>
+        <div style={{fontWeight:700,fontSize:20}}>RETRACE</div>
 
         <div style={{display:"flex",gap:24, alignItems:"center"}}>
           <a href="#customs">Customs</a>
@@ -18,7 +18,8 @@ export default function Landing(){
           <Link to="/register" style={{
             background:"var(--accent)",
             padding:"10px 18px",
-            fontWeight:600
+            fontWeight:600,
+            borderRadius:15,
           }}>
             Get Started
           </Link>
@@ -51,7 +52,7 @@ export default function Landing(){
 
       {/* TRUST STRIP */}
       <section className="section">
-        <div className="panel" style={{padding:24, display:"flex", justifyContent:"space-between"}}>
+        <div className="panel" style={{padding:24, display:"flex", justifyContent:"space-between", borderRadius:8}}>
           <span>Customs Authorities</span>
           <span>OEM Compliance Teams</span>
           <span>Dealership Networks</span>
@@ -62,9 +63,9 @@ export default function Landing(){
 
       {/* HOW */}
       <section id="how" className="section">
-        <h2 style={{fontSize:28}}>How Re:Trace Works</h2>
+        <h2 style={{fontSize:28}}>How ReTrace Works</h2>
 
-        <div className="grid-12 section">
+        <div className="grid-12 section" style={{borderRadius:8}}>
           <Step title="Search VIN" text="Retrieve lifecycle intelligence report"/>
           <Step title="Log Signals" text="Add sightings or lifecycle events"/>
           <Step title="Analyze Patterns" text="Detect cross-regional movement"/>
@@ -76,7 +77,7 @@ export default function Landing(){
       <section className="section">
         <div className="panel" style={{padding:48, textAlign:"center"}}>
           <h2>Start Monitoring Lifecycle Activity</h2>
-          <Link to="/register" style={{marginTop:18, display:"inline-block", background:"var(--accent)", padding:"14px 28px"}}>
+          <Link to="/register" style={{marginTop:18, display:"inline-block", background:"var(--accent)", padding:"14px 28px", borderRadius:8}}>
             Register Organization
           </Link>
         </div>

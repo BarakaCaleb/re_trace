@@ -29,3 +29,48 @@ body{
 .section{
   margin-top:24px;
 }
+
+.PhoneInput{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.PhoneInputCountry{
+  border:1px solid var(--muted);
+  background:transparent;
+  padding:6px 8px;
+}
+
+.PhoneInputInput{
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--text);
+  width:100%;
+}
+
+.panel{ background:#050505; border:1px solid #2A3A4D; }
+.muted{ color:#2A3A4D; }
+.grid-12{ display:grid; grid-template-columns:repeat(12,1fr); gap:24px; }
+.section{ margin-top:24px; }
+
+.PhoneInput{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.PhoneInputCountry{
+  border:1px solid var(--muted);
+  background:transparent;
+  padding:6px 8px;
+}
+
+.PhoneInputInput{
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--text);
+  width:100%;
+}

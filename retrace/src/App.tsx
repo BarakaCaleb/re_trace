@@ -6,6 +6,8 @@ import CreateAsset from "./pages/CreateAsset";
 import OEMPassport from "./pages/OEMPassport";
 import Asset from "./pages/Asset";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Register from "./pages/Register";
+import OEMDashboard from "./pages/oem/OEMDashboard";
 
 export default function App() {
   const DashboardComp = Dashboard as unknown as React.ComponentType<Record<string, unknown>>;
@@ -13,8 +15,11 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route path="/oem/passport" element={<OEMPassport />} />
+      <Route path="/oem" element={<OEMDashboard />} />
+      <Route path="/oem/passport/:vin" element={<OEMPassport />} />
 
       <Route
         path="/app"

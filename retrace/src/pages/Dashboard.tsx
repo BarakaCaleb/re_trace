@@ -9,15 +9,6 @@ export default function Dashboard() {
   const [eventsCount, setEventsCount] = useState<number | null>(null);
 
   useEffect(() => {
-    const run = async () => {
-      try {
-        // Count all assets and events (simple demo counters)
-        const assetsSnap = await getCountFromServer(collectionGroup(db, "assets" as any));
-        // Above line won't work because assets is a top-level collection (not a group).
-        // We'll do it correctly below:
-      } catch {}
-    };
-
     // Correct counters:
     const runCorrect = async () => {
       try {
@@ -32,7 +23,6 @@ export default function Dashboard() {
     setEventsCount(null);
 
     // Next iteration we’ll implement accurate counts + recent assets list.
-    run();
     runCorrect();
   }, []);
 

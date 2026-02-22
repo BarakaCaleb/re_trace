@@ -1,0 +1,204 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import type { Country } from "react-phone-number-input";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth, db } from "../config/firebase";
+
+type Role = "customs" | "garage" | "dealer" | "recycler" | "oem";
+
+function routeForRole(role: Role) {
+  if (role === "oem") return "/oem";
+  if (role === "customs") return "/customs";
+  if (role === "garage") return "/garage";
+  if (role === "dealer") return "/dealer";
+  if (role === "recycler") return "/recycler";
+  return "/app";
+}
+
+export default function Register() {
+  const nav = useNavigate();
+
+  const [fullName, setFullName] = useState("");
+  const [orgName, setOrgName] = useState("");
+  const [role, setRole] = useState<Role>("dealer");
+
+  // ✅ NEW: Region / County / Province
+  const [region, setRegion] = useState("");
+
+  // PhoneInput returns E.164 by default when international=true
+  const [phoneE164, setPhoneE164] = useState<string | undefined>(undefined);
+  const [country, setCountry] = useState<Country>("KE");
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr(null);
+
+    // Required checks
+    if (!fullName.trim()) return setErr("Full name is required.");
+    if (!orgName.trim()) return setErr("Organization name is required.");
+    if (!region.trim()) return setErr("Region / County / Province is required.");
+    if (!country) return setErr("Country is required.");
+    if (!phoneE164) return setErr("Phone number is required.");
+    if (!isValidPhoneNumber(phoneE164)) return setErr("Enter a valid phone number.");
+    if (!email.trim()) return setErr("Email is required.");
+    if (!password || password.length < 6) return setErr("Password must be at least 6 characters.");
+
+    setLoading(true);
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+
+      await setDoc(doc(db, "users", cred.user.uid), {
+        fullName: fullName.trim(),
+        orgName: orgName.trim(),
+        role,
+        region: region.trim(),      // ✅ NEW
+        email: email.trim().toLowerCase(),
+        phoneE164,                  // ✅ already E.164 format
+        countryCode: country,       // e.g. "KE"
+        createdAt: serverTimestamp(),
+      });
+
+      nav(routeForRole(role), { replace: true });
+    } catch (error: unknown) {
+      if (error instanceof Error) setErr(error.message);
+      else setErr(typeof error === "string" ? error : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 560, background: "#050505", border: "1px solid #2A3A4D", padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>RE:TRACE</div>
+            <div style={{ color: "#2A3A4D", fontSize: 13 }}>Register organization</div>
+          </div>
+          <Link to="/login" style={{ color: "#FFFFFF", textDecoration: "none", fontSize: 13 }}>
+            Login
+          </Link>
+        </div>
+
+        <form onSubmit={submit} style={{ marginTop: 16, display: "grid", gap: 12 }}>
+          <Field label="Full name (required)">
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} required />
+          </Field>
+
+          <Field label="Organization name (required)">
+            <input value={orgName} onChange={(e) => setOrgName(e.target.value)} style={inputStyle} required />
+          </Field>
+
+          {/* ✅ NEW: Region */}
+          <Field label="Region / County / Province (required)">
+            <input
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="e.g. Nairobi"
+              style={inputStyle}
+              required
+            />
+          </Field>
+
+          <Field label="Account type (required)">
+            <select value={role} onChange={(e) => setRole(e.target.value as Role)} style={inputStyle} required>
+              <option value="customs">Customs</option>
+              <option value="garage">Garage</option>
+              <option value="dealer">Dealer</option>
+              <option value="recycler">Recycler</option>
+              <option value="oem">OEM</option>
+            </select>
+          </Field>
+
+          <Field label="Phone number (required)">
+            <div style={phoneWrap}>
+              <PhoneInput
+                defaultCountry="KE"
+                country={country}
+                onCountryChange={(c) => setCountry((c ?? "KE") as Country)}
+                value={phoneE164}
+                onChange={setPhoneE164}
+                international
+                countryCallingCodeEditable={false}
+              />
+            </div>
+
+            <div style={{ marginTop: 6, color: "#2A3A4D", fontSize: 12 }}>
+              Stored as E.164: {phoneE164 || "—"}
+            </div>
+          </Field>
+
+          <div style={{ height: 1, background: "#2A3A4D", marginTop: 6 }} />
+
+          <Field label="Email (required)">
+            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" style={inputStyle} required />
+          </Field>
+
+          <Field label="Password (min 6)">
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              minLength={6}
+              style={inputStyle}
+              required
+            />
+          </Field>
+
+          {err && <div style={{ color: "#ff6b6b", fontSize: 13 }}>{err}</div>}
+
+          <button disabled={loading} style={primaryBtn}>
+            {loading ? "Creating…" : "Create account"}
+          </button>
+
+          <div style={{ color: "#2A3A4D", fontSize: 12 }}>
+            Already registered?{" "}
+            <Link to="/login" style={{ color: "#1C6FFF", textDecoration: "none" }}>
+              Sign in →
+            </Link>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label style={{ display: "grid", gap: 8 }}>
+      <span style={{ color: "#2A3A4D", fontSize: 13 }}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  padding: 10,
+  border: "1px solid #2A3A4D",
+  background: "transparent",
+  color: "#FFFFFF",
+  outline: "none",
+};
+
+const primaryBtn: React.CSSProperties = {
+  padding: "12px 14px",
+  border: "1px solid #1C6FFF",
+  background: "#1C6FFF",
+  color: "#FFFFFF",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const phoneWrap: React.CSSProperties = {
+  padding: 10,
+  border: "1px solid #2A3A4D", // ✅ FIXED
+  background: "transparent",
+};
