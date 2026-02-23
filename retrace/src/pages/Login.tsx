@@ -1,19 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../config/firebase";
-
-type Role = "customs" | "garage" | "dealer" | "recycler" | "oem";
-
-function routeForRole(role: Role) {
-  if (role === "oem") return "/oem";
-  if (role === "customs") return "/customs";
-  if (role === "garage") return "/garage";
-  if (role === "dealer") return "/dealer";
-  if (role === "recycler") return "/recycler";
-  return "/app";
-}
+import { auth } from "../config/firebase";
+import { getMyProfile, routeForRole } from "../services/userProfile";
 
 export default function Login() {
   const nav = useNavigate();
@@ -28,25 +17,23 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
 
-      // Fetch user profile to decide dashboard
-      const snap = await getDoc(doc(db, "users", cred.user.uid));
+      // Fetch profile to decide dashboard + enforce required onboarding fields
+      const p = await getMyProfile();
 
-      if (!snap.exists()) {
-        // No profile doc => force onboarding (phone + country + role)
+      // No profile doc => force onboarding (phone + country + region + role)
+      if (!p) {
         nav("/register", { replace: true });
         return;
       }
 
-      const data = snap.data() as any;
+      const role = p.role;
+      const phoneE164 = p.phoneE164;
+      const countryCode = p.countryCode;
+      const region = p.region;
 
-      // Enforce required fields for MVP
-      const role = data.role as Role | undefined;
-      const phoneE164 = data.phoneE164 as string | undefined;
-      const countryCode = data.countryCode as string | undefined;
-
-      if (!role || !phoneE164 || !countryCode) {
+      if (!role || !phoneE164 || !countryCode || !region) {
         nav("/register", { replace: true });
         return;
       }
@@ -83,7 +70,7 @@ export default function Login() {
 
         <form onSubmit={submit} style={{ marginTop: 14, display: "grid", gap: 10 }}>
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13, color: "#2A3A4D", borderRadius: 14 }}>Email</span>
+            <span style={{ fontSize: 13, color: "#2A3A4D" }}>Email</span>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -116,7 +103,7 @@ export default function Login() {
           <div style={{ marginTop: 6, fontSize: 13, color: "#2A3A4D" }}>
             Don’t have an account?{" "}
             <Link to="/register" style={{ color: "#1C6FFF", textDecoration: "none" }}>
-              Register organization -&gt;
+              Register organization →
             </Link>
           </div>
         </form>

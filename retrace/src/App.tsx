@@ -8,6 +8,10 @@ import Asset from "./pages/Asset";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Register from "./pages/Register";
 import OEMDashboard from "./pages/oem/OEMDashboard";
+import CustomsDashboard from "./pages/customs/CustomsDashboard";
+import GaragePortal from "./pages/garage/Garageportal";
+
+
 
 export default function App() {
   const DashboardComp = Dashboard as unknown as React.ComponentType<Record<string, unknown>>;
@@ -20,6 +24,9 @@ export default function App() {
       <Route path="/oem/passport" element={<OEMPassport />} />
       <Route path="/oem" element={<OEMDashboard />} />
       <Route path="/oem/passport/:vin" element={<OEMPassport />} />
+      <Route path="/customs" element={<CustomsDashboard />} />
+      <Route path="/garage" element={<GaragePortal />} />
+
 
       <Route
         path="/app"

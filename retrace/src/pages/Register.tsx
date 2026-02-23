@@ -9,12 +9,14 @@ import { auth, db } from "../config/firebase";
 type Role = "customs" | "garage" | "dealer" | "recycler" | "oem";
 
 function routeForRole(role: Role) {
-  if (role === "oem") return "/oem";
-  if (role === "customs") return "/customs";
-  if (role === "garage") return "/garage";
-  if (role === "dealer") return "/dealer";
-  if (role === "recycler") return "/recycler";
-  return "/app";
+  switch (role) {
+    case "oem": return "/oem";
+    case "customs": return "/customs";
+    case "garage": return "/garage";
+    case "dealer": return "/dealer";
+    case "recycler": return "/recycler";
+    default: return "/app";
+  }
 }
 
 export default function Register() {
@@ -23,12 +25,9 @@ export default function Register() {
   const [fullName, setFullName] = useState("");
   const [orgName, setOrgName] = useState("");
   const [role, setRole] = useState<Role>("dealer");
-
-  // ✅ NEW: Region / County / Province
   const [region, setRegion] = useState("");
 
-  // PhoneInput returns E.164 by default when international=true
-  const [phoneE164, setPhoneE164] = useState<string | undefined>(undefined);
+  const [phoneE164, setPhoneE164] = useState<string | undefined>();
   const [country, setCountry] = useState<Country>("KE");
 
   const [email, setEmail] = useState("");
@@ -39,37 +38,45 @@ export default function Register() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setErr(null);
 
-    // Required checks
-    if (!fullName.trim()) return setErr("Full name is required.");
-    if (!orgName.trim()) return setErr("Organization name is required.");
-    if (!region.trim()) return setErr("Region / County / Province is required.");
+    const name = fullName.trim();
+    const org = orgName.trim();
+    const reg = region.trim();
+    const mail = email.trim().toLowerCase();
+
+    if (!name) return setErr("Full name is required.");
+    if (!org) return setErr("Organization name is required.");
+    if (!reg) return setErr("Region / County / Province is required.");
     if (!country) return setErr("Country is required.");
     if (!phoneE164) return setErr("Phone number is required.");
     if (!isValidPhoneNumber(phoneE164)) return setErr("Enter a valid phone number.");
-    if (!email.trim()) return setErr("Email is required.");
+    if (!mail) return setErr("Email is required.");
     if (!password || password.length < 6) return setErr("Password must be at least 6 characters.");
 
     setLoading(true);
+
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const cred = await createUserWithEmailAndPassword(auth, mail, password);
 
       await setDoc(doc(db, "users", cred.user.uid), {
-        fullName: fullName.trim(),
-        orgName: orgName.trim(),
+        fullName: name,
+        orgName: org,
         role,
-        region: region.trim(),      // ✅ NEW
-        email: email.trim().toLowerCase(),
-        phoneE164,                  // ✅ already E.164 format
-        countryCode: country,       // e.g. "KE"
+        region: reg,
+        email: mail,
+        phoneE164,
+        countryCode: country,
         createdAt: serverTimestamp(),
+        proPoints: 0,
       });
 
       nav(routeForRole(role), { replace: true });
+
     } catch (error: unknown) {
       if (error instanceof Error) setErr(error.message);
-      else setErr(typeof error === "string" ? error : "Something went wrong");
+      else setErr("Registration failed. Try again.");
     } finally {
       setLoading(false);
     }
@@ -89,27 +96,21 @@ export default function Register() {
         </div>
 
         <form onSubmit={submit} style={{ marginTop: 16, display: "grid", gap: 12 }}>
-          <Field label="Full name (required)">
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} required />
+
+          <Field label="Full name">
+            <input autoFocus value={fullName} onChange={e => setFullName(e.target.value)} style={inputStyle}/>
           </Field>
 
-          <Field label="Organization name (required)">
-            <input value={orgName} onChange={(e) => setOrgName(e.target.value)} style={inputStyle} required />
+          <Field label="Organization name">
+            <input value={orgName} onChange={e => setOrgName(e.target.value)} style={inputStyle}/>
           </Field>
 
-          {/* ✅ NEW: Region */}
-          <Field label="Region / County / Province (required)">
-            <input
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              placeholder="e.g. Nairobi"
-              style={inputStyle}
-              required
-            />
+          <Field label="Region / County / Province">
+            <input value={region} onChange={e => setRegion(e.target.value)} placeholder="e.g. Nairobi" style={inputStyle}/>
           </Field>
 
-          <Field label="Account type (required)">
-            <select value={role} onChange={(e) => setRole(e.target.value as Role)} style={inputStyle} required>
+          <Field label="Account type">
+            <select value={role} onChange={e => setRole(e.target.value as Role)} style={inputStyle}>
               <option value="customs">Customs</option>
               <option value="garage">Garage</option>
               <option value="dealer">Dealer</option>
@@ -118,7 +119,7 @@ export default function Register() {
             </select>
           </Field>
 
-          <Field label="Phone number (required)">
+          <Field label="Phone number">
             <div style={phoneWrap}>
               <PhoneInput
                 defaultCountry="KE"
@@ -130,27 +131,16 @@ export default function Register() {
                 countryCallingCodeEditable={false}
               />
             </div>
-
-            <div style={{ marginTop: 6, color: "#2A3A4D", fontSize: 12 }}>
-              Stored as E.164: {phoneE164 || "—"}
-            </div>
           </Field>
 
           <div style={{ height: 1, background: "#2A3A4D", marginTop: 6 }} />
 
-          <Field label="Email (required)">
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" style={inputStyle} required />
+          <Field label="Email">
+            <input value={email} onChange={e => setEmail(e.target.value)} type="email" style={inputStyle}/>
           </Field>
 
-          <Field label="Password (min 6)">
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              minLength={6}
-              style={inputStyle}
-              required
-            />
+          <Field label="Password">
+            <input value={password} onChange={e => setPassword(e.target.value)} type="password" minLength={6} style={inputStyle}/>
           </Field>
 
           {err && <div style={{ color: "#ff6b6b", fontSize: 13 }}>{err}</div>}
@@ -199,6 +189,6 @@ const primaryBtn: React.CSSProperties = {
 
 const phoneWrap: React.CSSProperties = {
   padding: 10,
-  border: "1px solid #2A3A4D", // ✅ FIXED
+  border: "1px solid #2A3A4D",
   background: "transparent",
 };

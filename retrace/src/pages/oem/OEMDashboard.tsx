@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
-import { auth, db } from "../../config/firebase";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "../../config/firebase";
+import { db } from "../../config/firebase";
+import { searchVin } from "../../services/searchVin";
+import OEMVinUploader from "./OEMVinUploader";
 
 type VinSearchRow = {
   vin: string;
   searchedAt?: any;
-  countryCode?: string;     // "KE"
-  region?: string;          // later
-  role?: string;            // customs/garage/dealer/recycler/oem
+  countryCode?: string; // "KE"
+  region?: string;      // "Nairobi"
+  role?: string;        // customs/garage/dealer/recycler/oem
   orgName?: string;
   riskLevel?: "LOW" | "MEDIUM" | "HIGH" | string;
 };
@@ -40,7 +40,6 @@ export default function OEMDashboard() {
   const [rows, setRows] = useState<VinSearchRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // MVP window: last N days computed from latest rows
   const DAYS = 14;
 
   useEffect(() => {
@@ -48,8 +47,6 @@ export default function OEMDashboard() {
       setLoading(true);
       setErr(null);
       try {
-        // Pull recent searches; we aggregate client-side for MVP
-        // Increase limit if you have more data
         const q = query(collection(db, "vinSearches"), orderBy("searchedAt", "desc"), limit(1500));
         const snap = await getDocs(q);
         const data = snap.docs.map((d) => d.data() as VinSearchRow);
@@ -67,7 +64,7 @@ export default function OEMDashboard() {
     const d = new Date();
     d.setDate(d.getDate() - (DAYS - 1));
     return startOfDay(d);
-  }, []);
+  }, [DAYS]);
 
   const windowedRows = useMemo(() => {
     return rows.filter((r) => {
@@ -81,11 +78,17 @@ export default function OEMDashboard() {
 
     const uniqueVins = new Set<string>();
     const countries = new Set<string>();
+    const regions = new Set<string>();
     let highRisk = 0;
 
     for (const r of windowedRows) {
       if (r.vin) uniqueVins.add(r.vin);
       if (r.countryCode) countries.add(r.countryCode);
+
+      const cc = r.countryCode ?? "—";
+      const rg = r.region ?? "—";
+      regions.add(`${cc} • ${rg}`);
+
       if (r.riskLevel === "HIGH") highRisk += 1;
     }
 
@@ -94,30 +97,37 @@ export default function OEMDashboard() {
       uniqueVins: uniqueVins.size,
       highRisk,
       activeCountries: countries.size,
+      activeRegions: regions.size,
     };
   }, [windowedRows]);
 
-  const countryTable = useMemo(() => {
+  const regionTable = useMemo(() => {
     const counts: Record<string, { total: number; high: number }> = {};
+
     for (const r of windowedRows) {
+      const cc = r.countryCode ?? "—";
       const rg = r.region ?? "—";
       const key = `${cc} • ${rg}`;
+
       if (!counts[key]) counts[key] = { total: 0, high: 0 };
       counts[key].total += 1;
       if (r.riskLevel === "HIGH") counts[key].high += 1;
     }
 
-    const out = Object.entries(counts)
-      .map(([countryCode, v]) => ({ countryCode, total: v.total, high: v.high }))
+    return Object.entries(counts)
+      .map(([regionKey, v]) => ({
+        regionKey,
+        total: v.total,
+        high: v.high,
+        highPct: v.total ? Math.round((v.high / v.total) * 100) : 0,
+      }))
       .sort((a, b) => b.total - a.total);
-
-    return out;
   }, [windowedRows]);
 
   const trend = useMemo(() => {
-    // Build last 14 days series
     const today = startOfDay(new Date());
     const days: { key: string; total: number; high: number }[] = [];
+
     for (let i = DAYS - 1; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
@@ -138,44 +148,40 @@ export default function OEMDashboard() {
     }
 
     return days;
-  }, [windowedRows]);
+  }, [windowedRows, DAYS]);
 
   const latestHighRisk = useMemo(() => {
-    const out = windowedRows
+    return windowedRows
       .filter((r) => r.riskLevel === "HIGH")
       .slice(0, 12)
       .map((r) => ({
         vin: r.vin,
         countryCode: r.countryCode ?? "—",
+        region: r.region ?? "—",
         role: r.role ?? "—",
         orgName: r.orgName ?? "—",
         at: r.searchedAt?.toDate?.() as Date | undefined,
       }));
-    return out;
   }, [windowedRows]);
 
-  const maxCountryTotal = useMemo(() => {
-    return Math.max(1, ...countryTable.map((x) => x.total));
-  }, [countryTable]);
+  const maxRegionTotal = useMemo(() => Math.max(1, ...regionTable.map((x) => x.total)), [regionTable]);
 
   const searchVIN = async () => {
-  setErr(null);
-  const v = normalizeVIN(vin);
-  if (!v) return setErr("Enter a VIN.");
-  if (v.length < 11) return setErr("VIN looks too short.");
+    setErr(null);
+    const v = normalizeVIN(vin);
+    if (!v) return setErr("Enter a VIN.");
+    if (v.length < 11) return setErr("VIN looks too short.");
 
-  setBusy(true);
-  try {
-    const fn = httpsCallable(functions, "searchVin");
-    const res = await fn({ vin: v });
-    // res.data is the report
-    nav(`/oem/passport/${v}`);
-  } catch (e: any) {
-    setErr(e?.message ?? "Search failed");
-  } finally {
-    setBusy(false);
-  }
-};
+    setBusy(true);
+    try {
+      await searchVin(v);
+      nav(`/oem/passport/${v}`);
+    } catch (e: any) {
+      setErr(e?.message ?? "Search failed");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div style={{ maxWidth: 1440, margin: "0 auto", padding: 32 }}>
@@ -207,11 +213,20 @@ export default function OEMDashboard() {
             style={vinInput}
           />
           <button onClick={searchVIN} disabled={busy} style={primaryBtn}>
-            {busy ? "Opening…" : "Open Passport"}
+            {busy ? "Searching…" : "Search VIN"}
           </button>
         </div>
 
         {err && <div style={{ marginTop: 10, color: "#ff6b6b", fontSize: 13 }}>{err}</div>}
+      </div>
+
+      {/* ✅ NEW: VIN seeding */}
+      <div className="section">
+        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>VIN Seeding (OEM Catalog)</div>
+        <div style={{ color: "#2A3A4D", marginBottom: 14 }}>
+          Add VINs to <span style={{ fontFamily: "monospace" }}>vinCatalog</span> so downstream searches resolve to official identity.
+        </div>
+        <OEMVinUploader />
       </div>
 
       {loading && (
@@ -227,37 +242,37 @@ export default function OEMDashboard() {
             <KPI title="VIN Searches" value={stats.totalSearches} sub={`last ${DAYS} days`} />
             <KPI title="Unique VINs" value={stats.uniqueVins} sub={`last ${DAYS} days`} />
             <KPI title="High Risk Signals" value={stats.highRisk} sub={`last ${DAYS} days`} />
-            <KPI title="Active Countries" value={stats.activeCountries} sub={`last ${DAYS} days`} />
+            <KPI title="Active Regions" value={stats.activeRegions} sub={`country • region`} />
           </div>
 
-          {/* Two-column: Country heat table + Trend */}
+          {/* Two-column: Region heat table + Trend */}
           <div className="grid-12 section">
-            {/* Country activity */}
+            {/* Region activity */}
             <div className="panel" style={{ gridColumn: "span 7", padding: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <h2 style={{ margin: 0, fontSize: 24 }}>Regional Activity (Country Heat)</h2>
-                <div style={{ color: "#2A3A4D", fontSize: 13 }}>Intensity = volume</div>
+                <h2 style={{ margin: 0, fontSize: 24 }}>Regional Activity (Country • Region)</h2>
+                <div style={{ color: "#2A3A4D", fontSize: 13 }}>Intensity = volume • % = high-risk ratio</div>
               </div>
 
               <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
-                {countryTable.length === 0 ? (
+                {regionTable.length === 0 ? (
                   <div style={{ color: "#2A3A4D" }}>No activity yet. Run VIN searches to generate signals.</div>
                 ) : (
-                  countryTable.slice(0, 12).map((r) => {
-                    const intensity = Math.max(0.08, r.total / maxCountryTotal); // 0..1
+                  regionTable.slice(0, 12).map((r) => {
+                    const intensity = Math.max(0.08, r.total / maxRegionTotal);
                     return (
                       <div
-                        key={r.countryCode}
+                        key={r.regionKey}
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "110px 1fr 120px",
+                          gridTemplateColumns: "220px 1fr 160px",
                           gap: 12,
                           alignItems: "center",
                           paddingBottom: 10,
                           borderBottom: "1px solid #2A3A4D",
                         }}
                       >
-                        <div style={{ fontFamily: "monospace" }}>{r.countryCode}</div>
+                        <div style={{ fontFamily: "monospace" }}>{r.regionKey}</div>
 
                         <div style={{ height: 10, background: "#0e0e0e", border: "1px solid #2A3A4D" }}>
                           <div
@@ -270,7 +285,7 @@ export default function OEMDashboard() {
                         </div>
 
                         <div style={{ textAlign: "right", color: "#2A3A4D" }}>
-                          {r.total} total • {r.high} high
+                          {r.total} total • {r.high} high • {r.highPct}%
                         </div>
                       </div>
                     );
@@ -279,7 +294,7 @@ export default function OEMDashboard() {
               </div>
 
               <div style={{ marginTop: 14, color: "#2A3A4D", fontSize: 12 }}>
-                Next: replace country with country + region (county/province) once you capture `region` at signup.
+                Captured from user profile (countryCode + region) and logged per vinSearch.
               </div>
             </div>
 
@@ -295,21 +310,24 @@ export default function OEMDashboard() {
                   const wh = d.total ? Math.round((d.high / d.total) * w) : 0;
 
                   return (
-                    <div key={d.key} style={{ display: "grid", gridTemplateColumns: "110px 1fr 50px", gap: 12, alignItems: "center" }}>
+                    <div
+                      key={d.key}
+                      style={{ display: "grid", gridTemplateColumns: "110px 1fr 50px", gap: 12, alignItems: "center" }}
+                    >
                       <div style={{ fontFamily: "monospace", color: "#2A3A4D", fontSize: 12 }}>{d.key}</div>
+
                       <div style={{ height: 10, background: "#0e0e0e", border: "1px solid #2A3A4D", position: "relative" }}>
                         <div style={{ width: `${w}%`, height: 10, background: "var(--accent)" }} />
                         <div style={{ width: `${wh}%`, height: 10, background: "#ffffff", position: "absolute", top: 0, left: 0, opacity: 0.25 }} />
                       </div>
+
                       <div style={{ textAlign: "right", color: "#2A3A4D", fontSize: 12 }}>{d.total}</div>
                     </div>
                   );
                 })}
               </div>
 
-              <div style={{ marginTop: 14, color: "#2A3A4D", fontSize: 12 }}>
-                White overlay indicates high-risk ratio (for quick scanning).
-              </div>
+              <div style={{ marginTop: 14, color: "#2A3A4D", fontSize: 12 }}>White overlay indicates high-risk ratio.</div>
             </div>
           </div>
 
@@ -329,7 +347,7 @@ export default function OEMDashboard() {
                     key={`${r.vin}-${idx}`}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "220px 90px 120px 1fr 180px",
+                      gridTemplateColumns: "220px 90px 160px 120px 1fr 180px",
                       gap: 12,
                       paddingBottom: 10,
                       borderBottom: "1px solid #2A3A4D",
@@ -340,11 +358,10 @@ export default function OEMDashboard() {
                       {r.vin}
                     </Link>
                     <div style={{ fontFamily: "monospace", color: "#2A3A4D" }}>{r.countryCode}</div>
+                    <div style={{ color: "#2A3A4D" }}>{r.region}</div>
                     <div style={{ color: "#2A3A4D" }}>{r.role}</div>
                     <div style={{ color: "#2A3A4D" }}>{r.orgName}</div>
-                    <div style={{ color: "#2A3A4D", fontSize: 12 }}>
-                      {r.at ? r.at.toLocaleString() : "—"}
-                    </div>
+                    <div style={{ color: "#2A3A4D", fontSize: 12 }}>{r.at ? r.at.toLocaleString() : "—"}</div>
                   </div>
                 ))
               )}
@@ -354,7 +371,7 @@ export default function OEMDashboard() {
       )}
 
       <div className="section" style={{ color: "#2A3A4D", fontSize: 12 }}>
-        Note: If Firestore prompts an index for vinSearches queries elsewhere, click the link in the error to auto-create it.
+        Note: If Firestore prompts an index later, click the console link to auto-create it.
       </div>
     </div>
   );
