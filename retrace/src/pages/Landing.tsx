@@ -276,7 +276,7 @@ export default function Landing() {
               <button style={footerBtn}>Subscribe</button>
             </div>
             <div className="muted" style={{ marginTop: 8, fontSize: 12 }}>
-              (MVP) Hook this to Firestore later.
+              We care about privacy and will never spam you.
             </div>
           </div>
         </div>
